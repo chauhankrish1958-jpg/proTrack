@@ -29,9 +29,29 @@
                 <!-- Profile Overview Header -->
                 <div class="protrack-card mb-4">
                     <div class="protrack-card-body p-4 text-center">
-                        <div class="rounded-circle bg-primary text-white fw-bold d-inline-flex align-items-center justify-content-center mb-3"
-                             style="width: 72px; height: 72px; font-size: 1.8rem; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);">
-                            <%= profileUser != null && !profileUser.getFullName().isEmpty() ? ValidationUtil.escapeXml(profileUser.getFullName().substring(0, 1).toUpperCase()) : "U" %>
+                        <div class="position-relative d-inline-block mb-3">
+                            <% if (profileUser != null && profileUser.hasProfilePicture()) { %>
+                                <img src="<%= ValidationUtil.escapeXml(profileUser.getProfilePicture()) %>"
+                                     alt="Profile Picture" id="currentAvatarImg"
+                                     class="rounded-circle object-fit-cover shadow-sm border"
+                                     style="width: 84px; height: 84px; border: 3px solid #6366f1 !important;">
+                            <% } else { %>
+                                <div class="rounded-circle bg-primary text-white fw-bold d-inline-flex align-items-center justify-content-center"
+                                     id="currentAvatarInitial"
+                                     style="width: 84px; height: 84px; font-size: 2rem; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);">
+                                    <%= profileUser != null && !profileUser.getFullName().isEmpty() ? ValidationUtil.escapeXml(profileUser.getFullName().substring(0, 1).toUpperCase()) : "U" %>
+                                </div>
+                            <% } %>
+                            <button type="button" class="btn btn-sm btn-primary rounded-circle position-absolute bottom-0 end-0 p-0 shadow d-flex align-items-center justify-content-center"
+                                    style="width: 28px; height: 28px; font-size: 0.75rem;"
+                                    title="Change Profile Picture" data-bs-toggle="modal" data-bs-target="#avatarModal">
+                                <i class="bi bi-camera-fill"></i>
+                            </button>
+                        </div>
+                        <div class="mb-2">
+                            <button type="button" class="btn btn-sm btn-outline-custom" data-bs-toggle="modal" data-bs-target="#avatarModal">
+                                <i class="bi bi-image me-1"></i> Change Photo
+                            </button>
                         </div>
                         <h4 class="fw-bold text-dark mb-1"><%= profileUser != null ? ValidationUtil.escapeXml(profileUser.getFullName()) : "" %></h4>
                         <div class="text-secondary small mb-2"><%= profileUser != null ? ValidationUtil.escapeXml(profileUser.getEmail()) : "" %></div>
@@ -141,5 +161,98 @@
         </div>
 
     </div><!-- /.content-body -->
+
+<!-- Modal: Update Profile Picture -->
+<div class="modal fade" id="avatarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h6 class="modal-title fw-bold"><i class="bi bi-camera text-primary me-2"></i>Update Profile Picture</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <!-- Image Preview -->
+                <div class="mb-3">
+                    <img id="avatarPreview" src="<%= profileUser != null && profileUser.hasProfilePicture() ? ValidationUtil.escapeXml(profileUser.getProfilePicture()) : "https://ui-avatars.com/api/?name=" + (profileUser != null ? profileUser.getFullName() : "User") + "&background=6366f1&color=fff&size=128" %>" 
+                         alt="Preview" class="rounded-circle object-fit-cover shadow-sm border" style="width: 110px; height: 110px; border: 3px solid #e0e7ff !important;">
+                </div>
+
+                <form id="avatarForm" action="<%= request.getContextPath() %>/profile" method="POST">
+                    <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                    <input type="hidden" id="avatarAction" name="action" value="updateProfilePicture">
+                    <input type="hidden" id="profilePictureData" name="profilePicture" value="<%= profileUser != null && profileUser.hasProfilePicture() ? ValidationUtil.escapeXml(profileUser.getProfilePicture()) : "" %>">
+
+                    <!-- File Upload Option -->
+                    <div class="mb-3 text-start">
+                        <label class="form-label small fw-semibold">Upload Image from Computer</label>
+                        <input type="file" id="avatarFileInput" class="form-control form-control-sm" accept="image/png, image/jpeg, image/jpg, image/webp" onchange="previewAvatarFile(this)">
+                        <div class="form-text" style="font-size: 0.75rem;">Supported formats: JPG, PNG, WEBP (Max 2MB)</div>
+                    </div>
+
+                    <!-- URL Option -->
+                    <div class="mb-3 text-start">
+                        <label class="form-label small fw-semibold">Or Image URL</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light text-muted"><i class="bi bi-link-45deg"></i></span>
+                            <input type="url" id="avatarUrlInput" class="form-control" placeholder="https://example.com/avatar.jpg" oninput="previewAvatarUrl(this.value)">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                        <% if (profileUser != null && profileUser.hasProfilePicture()) { %>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="submitRemoveAvatar()">
+                            <i class="bi bi-trash3 me-1"></i> Remove Photo
+                        </button>
+                        <% } else { %>
+                        <div></div>
+                        <% } %>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-check-lg me-1"></i> Save Picture
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function previewAvatarFile(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Image size exceeds 2MB limit. Please choose a smaller image.');
+                input.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                document.getElementById('avatarPreview').src = dataUrl;
+                document.getElementById('profilePictureData').value = dataUrl;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function previewAvatarUrl(url) {
+        url = url.trim();
+        if (url) {
+            document.getElementById('avatarPreview').src = url;
+            document.getElementById('profilePictureData').value = url;
+        }
+    }
+
+    function submitRemoveAvatar() {
+        if (confirm('Are you sure you want to remove your profile picture?')) {
+            document.getElementById('avatarAction').value = 'removeProfilePicture';
+            document.getElementById('profilePictureData').value = '';
+            document.getElementById('avatarForm').submit();
+        }
+    }
+</script>
 
 <jsp:include page="common/footer.jsp" />
