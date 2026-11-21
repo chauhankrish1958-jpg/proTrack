@@ -532,3 +532,281 @@ function showKanbanToast(message, type) {
     }, 3500);
 }
 
+// =========================================================================
+// 10. TASK ATTACHMENTS & DOCUMENT MANAGER CONTROLLER
+// =========================================================================
+
+function getAppContextPath() {
+    const meta = document.querySelector('meta[name="context-path"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+function getAppCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.toString().replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+    });
+}
+
+function showAttachmentAlert(message, type) {
+    const alertEl = document.getElementById('attachmentAlert');
+    const textEl = document.getElementById('attachmentAlertText');
+    if (alertEl && textEl) {
+        alertEl.className = 'alert alert-' + type + ' alert-dismissible fade show small mb-3';
+        textEl.innerText = message;
+        alertEl.classList.remove('d-none');
+    }
+}
+
+function hideAttachmentAlert() {
+    const alertEl = document.getElementById('attachmentAlert');
+    if (alertEl) {
+        alertEl.classList.add('d-none');
+    }
+}
+
+/**
+ * Opens task attachments modal and triggers AJAX reload
+ */
+window.openTaskAttachmentsModal = function(taskId, taskTitle) {
+    if (!taskId) return;
+
+    const taskIdInput = document.getElementById('uploadModalTaskId');
+    if (taskIdInput) taskIdInput.value = taskId;
+
+    const titleEl = document.getElementById('taskAttachmentsModalLabel');
+    if (titleEl) {
+        titleEl.innerHTML = 'Task Attachments <span class="badge bg-primary-subtle text-primary ms-1">#' + taskId + '</span>';
+    }
+
+    const subtitleEl = document.getElementById('attachmentTaskSubtitle');
+    if (subtitleEl && taskTitle) {
+        subtitleEl.innerText = taskTitle;
+    }
+
+    const fileInput = document.getElementById('attachmentFileInput');
+    if (fileInput) fileInput.value = '';
+
+    hideAttachmentAlert();
+
+    const modalEl = document.getElementById('taskAttachmentsModal');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+
+    reloadTaskAttachments();
+};
+
+/**
+ * Loads attachments for current task ID via AJAX
+ */
+window.reloadTaskAttachments = function() {
+    const taskIdInput = document.getElementById('uploadModalTaskId');
+    const taskId = taskIdInput ? taskIdInput.value : null;
+    if (!taskId) return;
+
+    const tbody = document.getElementById('attachmentTableBody');
+    const countBadge = document.getElementById('attachmentCountBadge');
+
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-secondary me-1"></div> Loading attachments...</td></tr>';
+    }
+
+    const ctx = getAppContextPath();
+    fetch(ctx + '/attachment?taskId=' + encodeURIComponent(taskId), {
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(async response => {
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+            throw new Error((data && data.error) ? data.error : 'Failed to retrieve attachments.');
+        }
+        return data;
+    })
+    .then(data => {
+        if (!tbody) return;
+        if (Array.isArray(data)) {
+            if (countBadge) countBadge.innerText = data.length;
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">' +
+                    '<i class="bi bi-folder2-open d-block fs-3 mb-1 text-secondary opacity-50"></i>' +
+                    'No files attached to this task yet. Use the upload box above.</td></tr>';
+            } else {
+                tbody.innerHTML = data.map(att => {
+                    return '<tr>' +
+                        '<td>' +
+                            '<div class="d-flex align-items-center gap-2">' +
+                                '<i class="' + (att.fileIcon || 'bi bi-file-earmark') + ' fs-5 text-primary"></i>' +
+                                '<span class="fw-semibold text-dark text-break" style="max-width: 220px;" title="' + escapeHtml(att.fileName) + '">' +
+                                    escapeHtml(att.fileName) +
+                                '</span>' +
+                            '</div>' +
+                        '</td>' +
+                        '<td class="small text-muted text-nowrap">' + escapeHtml(att.fileSize) + '</td>' +
+                        '<td class="small text-muted text-nowrap"><i class="bi bi-person me-1"></i>' + escapeHtml(att.uploaderName) + '</td>' +
+                        '<td class="small text-muted text-nowrap">' + escapeHtml(att.uploadedAt) + '</td>' +
+                        '<td class="text-end text-nowrap">' +
+                            '<a href="' + ctx + '/attachment/download?id=' + att.id + '" class="btn btn-sm btn-outline-primary py-0 px-2 me-1" title="Download File">' +
+                                '<i class="bi bi-download"></i>' +
+                            '</a>' +
+                            (att.canDelete ?
+                            '<button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteTaskAttachment(' + att.id + ')" title="Delete File">' +
+                                '<i class="bi bi-trash"></i>' +
+                            '</button>' : '') +
+                        '</td>' +
+                    '</tr>';
+                }).join('');
+            }
+        } else {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-danger">' +
+                ((data && data.error) ? escapeHtml(data.error) : 'Unable to load attachments.') + '</td></tr>';
+        }
+    })
+    .catch(err => {
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-danger"><i class="bi bi-exclamation-triangle me-1"></i>' +
+                escapeHtml(err.message || 'Error loading attachments.') + '</td></tr>';
+        }
+    });
+};
+
+/**
+ * Deletes attachment via AJAX with CSRF validation
+ */
+window.deleteTaskAttachment = function(attachmentId) {
+    if (!attachmentId) return;
+    if (!confirm('Are you sure you want to permanently delete this attachment? This operation cannot be undone.')) {
+        return;
+    }
+
+    const ctx = getAppContextPath();
+    const csrfToken = getAppCsrfToken();
+
+    const params = new URLSearchParams();
+    params.append('id', attachmentId);
+    params.append('attachmentId', attachmentId);
+    params.append('csrfToken', csrfToken);
+
+    fetch(ctx + '/attachment/delete', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken
+        },
+        body: params.toString()
+    })
+    .then(async response => {
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+            throw new Error((data && data.error) ? data.error : 'Failed to delete attachment.');
+        }
+        return data;
+    })
+    .then(data => {
+        showAttachmentAlert(data.message || 'Attachment deleted successfully.', 'info');
+        reloadTaskAttachments();
+    })
+    .catch(err => {
+        showAttachmentAlert(err.message || 'Error removing attachment.', 'danger');
+    });
+};
+
+// Wire upload form submission and drop zone
+document.addEventListener('DOMContentLoaded', () => {
+    const uploadForm = document.getElementById('attachmentUploadForm');
+    const dropZone = document.getElementById('attachmentDropZone');
+    const fileInput = document.getElementById('attachmentFileInput');
+
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                showAttachmentAlert('Please select a file to upload.', 'warning');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            if (file.size > 10 * 1024 * 1024) {
+                showAttachmentAlert('File exceeds the 10 MB limit (' + (file.size / (1024 * 1024)).toFixed(1) + ' MB).', 'danger');
+                return;
+            }
+
+            const taskId = document.getElementById('uploadModalTaskId').value;
+            const csrfToken = getAppCsrfToken();
+            const ctx = getAppContextPath();
+
+            const formData = new FormData();
+            formData.append('taskId', taskId);
+            formData.append('file', file);
+            formData.append('csrfToken', csrfToken);
+
+            const uploadBtn = document.getElementById('btnUploadAttachment');
+            const spinner = document.getElementById('attachmentUploadSpinner');
+
+            if (uploadBtn) uploadBtn.disabled = true;
+            if (spinner) spinner.classList.remove('d-none');
+            hideAttachmentAlert();
+
+            fetch(ctx + '/attachment', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: formData
+            })
+            .then(async response => {
+                const data = await response.json().catch(() => null);
+                if (!response.ok) {
+                    throw new Error((data && data.error) ? data.error : 'Failed to upload attachment.');
+                }
+                return data;
+            })
+            .then(data => {
+                if (fileInput) fileInput.value = '';
+                showAttachmentAlert(data.message || 'File uploaded successfully!', 'success');
+                reloadTaskAttachments();
+            })
+            .catch(err => {
+                showAttachmentAlert(err.message || 'File upload failed.', 'danger');
+            })
+            .finally(() => {
+                if (uploadBtn) uploadBtn.disabled = false;
+                if (spinner) spinner.classList.add('d-none');
+            });
+        });
+    }
+
+    if (dropZone && fileInput) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('border-primary', 'bg-primary-subtle');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('border-primary', 'bg-primary-subtle');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+            }
+        }, false);
+    }
+});
+

@@ -84,7 +84,11 @@
         sb.append("  <div class=\"d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-light\">\n")
           .append("    <span class=\"badge badge-custom kanban-status-badge ").append(t.getStatus().getBadgeClass()).append("\" style=\"font-size: 0.7rem;\">")
           .append(t.getStatus().getLabel()).append("</span>\n")
-          .append("    <div class=\"d-flex gap-1\">\n");
+          .append("    <div class=\"d-flex gap-1 align-items-center\">\n")
+          .append("      <button type=\"button\" class=\"btn btn-sm btn-outline-custom py-0 px-1\" title=\"Files & Attachments\" ")
+          .append("onclick=\"openTaskAttachmentsModal(").append(t.getId()).append(", '").append(titleEsc.replace("'", "\\'")).append("')\">\n")
+          .append("        <i class=\"bi bi-paperclip text-secondary\" style=\"font-size: 0.75rem;\"></i>\n")
+          .append("      </button>\n");
 
         if (isManagerOrAdmin) {
             sb.append("      <button type=\"button\" class=\"btn btn-sm btn-outline-custom py-0 px-1\" title=\"Log Time\" ")
@@ -271,3 +275,6 @@
         </div>
     </div>
 </div>
+
+<!-- Task File Attachments Modal -->
+<jsp:include page="attachments-modal.jsp" />

@@ -157,6 +157,27 @@ CREATE TABLE `task_time_logs` (
     INDEX `idx_time_logs_date` (`log_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Table 8: task_attachments
+CREATE TABLE `task_attachments` (
+    `attachment_id` INT AUTO_INCREMENT PRIMARY KEY,
+    `task_id` INT NOT NULL,
+    `user_id` INT NOT NULL,
+    `file_name` VARCHAR(255) NOT NULL,
+    `file_path` VARCHAR(500) NOT NULL,
+    `file_size` BIGINT NOT NULL,
+    `content_type` VARCHAR(100) NOT NULL,
+    `uploaded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_att_task`
+        FOREIGN KEY (`task_id`) REFERENCES `tasks` (`task_id`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_att_user`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_att_task` (`task_id`),
+    INDEX `idx_att_user` (`user_id`),
+    INDEX `idx_att_created` (`uploaded_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Seed Data (BCrypt hashed passwords)
 INSERT INTO `users` (`user_id`, `full_name`, `email`, `password`, `role`, `status`) VALUES
 (1, 'Administrator', 'admin@protrack.com', '$2a$10$dkSTgGWz/61knT01f29PqOUiiQE1htpJfrHqw/oNGYZNIaNh2b2IC', 'ADMIN', 'ACTIVE'),
@@ -211,6 +232,13 @@ INSERT INTO `task_time_logs` (`task_id`, `user_id`, `hours_logged`, `log_date`, 
 (6, 4, 15.00, '2026-02-10', 'Face ID and Keychain crypto wrapper'),
 (6, 4, 15.00, '2026-02-18', 'Fallback PIN authentication flows'),
 (7, 6, 10.00, '2026-02-12', 'WCAG AAA contrast palette testing and tokens');
+
+-- Task Attachments Seed Data
+INSERT INTO `task_attachments` (`task_id`, `user_id`, `file_name`, `file_path`, `file_size`, `content_type`) VALUES
+(1, 4, 'database-schema-v1.sql', 'uploads/attachments/task-1-schema.sql', 15360, 'text/plain'),
+(2, 4, 'stripe-webhook-spec.pdf', 'uploads/attachments/task-2-stripe-spec.pdf', 245760, 'application/pdf'),
+(3, 6, 'checkout-wireframe.png', 'uploads/attachments/task-3-wireframe.png', 524288, 'image/png'),
+(6, 4, 'biometric-flow-diagram.pdf', 'uploads/attachments/task-6-biometrics.pdf', 312000, 'application/pdf');
 
 -- Activity Logs
 INSERT INTO `activity_logs` (`user_id`, `action`, `details`, `entity_type`, `entity_id`, `created_at`) VALUES

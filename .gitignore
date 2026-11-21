@@ -1,6 +1,7 @@
 target/
 tomcat/
 data/
+uploads/
 maven
 maven/
 tools/

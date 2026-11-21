@@ -238,6 +238,10 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-custom" title="Files & Attachments"
+                                                onclick="openTaskAttachmentsModal(<%= t.getId() %>, '<%= ValidationUtil.escapeXml(t.getTaskTitle()).replace("'", "\\'") %>')">
+                                            <i class="bi bi-paperclip text-secondary"></i>
+                                        </button>
                                         <button type="button" class="btn btn-outline-custom" title="Log Hours"
                                                 data-bs-toggle="modal" data-bs-target="#logTimeModal"
                                                 data-id="<%= t.getId() %>"

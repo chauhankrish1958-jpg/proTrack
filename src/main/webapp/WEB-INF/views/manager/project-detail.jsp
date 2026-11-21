@@ -97,138 +97,173 @@
             </div>
         </div>
 
-        <div class="row g-4">
-            <!-- Left: Tasks Under This Project -->
-            <div class="col-lg-8">
-                <div class="protrack-card">
-                    <div class="protrack-card-header">
-                        <h5 class="protrack-card-title">
-                            <i class="bi bi-list-task"></i> Project Tasks (<%= tasks != null ? tasks.size() : 0 %>)
-                        </h5>
-                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
-                            <i class="bi bi-plus-lg me-1"></i> Create Task
-                        </button>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-modern">
-                            <thead>
-                                <tr>
-                                    <th>Task Title</th>
-                                    <th>Assignee</th>
-                                    <th>Priority</th>
-                                    <th>Status</th>
-                                    <th>Due Date</th>
-                                    <th style="min-width: 140px;">Time Track</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <% if (tasks != null && !tasks.isEmpty()) {
-                                    for (Task t : tasks) { %>
-                                    <tr>
-                                        <td>
-                                            <div class="fw-semibold text-dark"><%= ValidationUtil.escapeXml(t.getTaskTitle()) %></div>
-                                            <div class="small text-muted text-truncate" style="max-width: 250px;"><%= t.getDescription() != null ? ValidationUtil.escapeXml(t.getDescription()) : "" %></div>
-                                        </td>
-                                        <td>
-                                            <span class="small fw-medium"><%= t.getAssignedToName() != null ? ValidationUtil.escapeXml(t.getAssignedToName()) : "Unassigned" %></span>
-                                        </td>
-                                        <td>
-                                            <span class="badge badge-custom <%= t.getPriority().getBadgeClass() %>">
-                                                <%= t.getPriority().getLabel() %>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="badge badge-custom <%= t.getStatus().getBadgeClass() %>">
-                                                <%= t.getStatus().getLabel() %>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="small fw-medium"><%= DateUtil.formatDisplayDate(t.getDueDate()) %></div>
-                                            <% if (t.isOverdue()) { %>
-                                                <span class="badge badge-overdue small mt-1"><i class="bi bi-alarm"></i> Overdue</span>
-                                            <% } else if (t.isDueToday()) { %>
-                                                <span class="badge bg-warning text-dark small mt-1">Due Today</span>
-                                            <% } %>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2 mb-1">
-                                                <div class="progress flex-grow-1" style="height: 6px; background-color: #e9ecef; border-radius: 3px;">
-                                                    <div class="progress-bar <%= t.getTimeProgressBarClass() %>" role="progressbar"
-                                                         style="width: <%= t.getDisplayProgressPercentage() %>%;"></div>
-                                                </div>
-                                                <span class="small fw-bold text-dark" style="font-size: 0.75rem;"><%= t.getTimeProgressPercentage() %>%</span>
-                                            </div>
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <span class="small text-muted" style="font-size: 0.72rem;">
-                                                    <strong><%= String.format("%.1f", t.getLoggedHours()) %>h</strong> / <%= String.format("%.1f", t.getEstimatedHours()) %>h
-                                                </span>
-                                                <% if (t.isOverEstimate()) { %>
-                                                    <span class="badge bg-danger text-white py-0 px-1" style="font-size: 0.65rem;">
-                                                        +<%= String.format("%.1f", t.getOvertimeHours()) %>h Over
+        <!-- Project Detail Navigation Tabs -->
+        <ul class="nav nav-pills mb-4" id="projectDetailTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-semibold" id="tasks-tab" data-bs-toggle="pill" data-bs-target="#tasks-tab-pane" type="button" role="tab" aria-controls="tasks-tab-pane" aria-selected="true">
+                    <i class="bi bi-list-task me-1"></i> Task Backlog (<%= tasks != null ? tasks.size() : 0 %>)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold" id="gantt-tab" data-bs-toggle="pill" data-bs-target="#gantt-tab-pane" type="button" role="tab" aria-controls="gantt-tab-pane" aria-selected="false">
+                    <i class="bi bi-bar-chart-steps me-1"></i> Interactive Gantt Timeline
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="projectDetailTabContent">
+            <!-- 1. Task Backlog Tab Pane -->
+            <div class="tab-pane fade show active" id="tasks-tab-pane" role="tabpanel" aria-labelledby="tasks-tab" tabindex="0">
+                <div class="row g-4">
+                    <!-- Left: Tasks Under This Project -->
+                    <div class="col-lg-8">
+                        <div class="protrack-card">
+                            <div class="protrack-card-header">
+                                <h5 class="protrack-card-title">
+                                    <i class="bi bi-list-task"></i> Project Tasks (<%= tasks != null ? tasks.size() : 0 %>)
+                                </h5>
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                                    <i class="bi bi-plus-lg me-1"></i> Create Task
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-modern">
+                                    <thead>
+                                        <tr>
+                                            <th>Task Title</th>
+                                            <th>Assignee</th>
+                                            <th>Priority</th>
+                                            <th>Status</th>
+                                            <th>Due Date</th>
+                                            <th style="min-width: 140px;">Time Track</th>
+                                            <th class="text-end" style="width: 70px;">Files</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% if (tasks != null && !tasks.isEmpty()) {
+                                            for (Task t : tasks) { %>
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold text-dark"><%= ValidationUtil.escapeXml(t.getTaskTitle()) %></div>
+                                                    <div class="small text-muted text-truncate" style="max-width: 250px;"><%= t.getDescription() != null ? ValidationUtil.escapeXml(t.getDescription()) : "" %></div>
+                                                </td>
+                                                <td>
+                                                    <span class="small fw-medium"><%= t.getAssignedToName() != null ? ValidationUtil.escapeXml(t.getAssignedToName()) : "Unassigned" %></span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-custom <%= t.getPriority().getBadgeClass() %>">
+                                                        <%= t.getPriority().getLabel() %>
                                                     </span>
-                                                <% } %>
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-custom <%= t.getStatus().getBadgeClass() %>">
+                                                        <%= t.getStatus().getLabel() %>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="small fw-medium"><%= DateUtil.formatDisplayDate(t.getDueDate()) %></div>
+                                                    <% if (t.isOverdue()) { %>
+                                                        <span class="badge badge-overdue small mt-1"><i class="bi bi-alarm"></i> Overdue</span>
+                                                    <% } else if (t.isDueToday()) { %>
+                                                        <span class="badge bg-warning text-dark small mt-1">Due Today</span>
+                                                    <% } %>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                                        <div class="progress flex-grow-1" style="height: 6px; background-color: #e9ecef; border-radius: 3px;">
+                                                            <div class="progress-bar <%= t.getTimeProgressBarClass() %>" role="progressbar"
+                                                                 style="width: <%= t.getDisplayProgressPercentage() %>%;"></div>
+                                                        </div>
+                                                        <span class="small fw-bold text-dark" style="font-size: 0.75rem;"><%= t.getTimeProgressPercentage() %>%</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <span class="small text-muted" style="font-size: 0.72rem;">
+                                                            <strong><%= String.format("%.1f", t.getLoggedHours()) %>h</strong> / <%= String.format("%.1f", t.getEstimatedHours()) %>h
+                                                        </span>
+                                                        <% if (t.isOverEstimate()) { %>
+                                                            <span class="badge bg-danger text-white py-0 px-1" style="font-size: 0.65rem;">
+                                                                +<%= String.format("%.1f", t.getOvertimeHours()) %>h Over
+                                                            </span>
+                                                        <% } %>
+                                                    </div>
+                                                </td>
+                                                <td class="text-end">
+                                                    <button type="button" class="btn btn-sm btn-outline-custom py-0 px-2" title="Files & Attachments"
+                                                            onclick="openTaskAttachmentsModal(<%= t.getId() %>, '<%= ValidationUtil.escapeXml(t.getTaskTitle()).replace("'", "\\'") %>')">
+                                                        <i class="bi bi-paperclip text-primary"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        <%  }
+                                           } else { %>
+                                            <tr>
+                                                <td colspan="7" class="text-center py-4 text-muted">No tasks currently created for this project.</td>
+                                            </tr>
+                                        <% } %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Team Members -->
+                    <div class="col-lg-4">
+                        <div class="protrack-card">
+                            <div class="protrack-card-header">
+                                <h5 class="protrack-card-title">
+                                    <i class="bi bi-people-fill"></i> Assigned Team (<%= members != null ? members.size() : 0 %>)
+                                </h5>
+                                <button type="button" class="btn btn-sm btn-outline-custom" data-bs-toggle="modal" data-bs-target="#assignMemberModal">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                            <div class="protrack-card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    <% if (members != null && !members.isEmpty()) {
+                                        for (User m : members) { %>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-light text-primary border fw-bold d-flex align-items-center justify-content-center me-3"
+                                                     style="width: 36px; height: 36px; font-size: 0.85rem;">
+                                                    <%= m.getFullName() != null && !m.getFullName().isEmpty() ? ValidationUtil.escapeXml(m.getFullName().substring(0, 1).toUpperCase()) : "U" %>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold text-dark"><%= ValidationUtil.escapeXml(m.getFullName()) %></div>
+                                                    <div class="small text-muted"><%= ValidationUtil.escapeXml(m.getEmail()) %></div>
+                                                </div>
                                             </div>
-                                        </td>
-                                    </tr>
-                                <%  }
-                                   } else { %>
-                                    <tr>
-                                        <td colspan="6" class="text-center py-4 text-muted">No tasks currently created for this project.</td>
-                                    </tr>
-                                <% } %>
-                            </tbody>
-                        </table>
+                                            <form action="<%= request.getContextPath() %>/manager/projects" method="POST" onsubmit="return confirm('Remove <%= ValidationUtil.escapeXml(m.getFullName()) %> from this project?');">
+                                                <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                                                <input type="hidden" name="action" value="removeMember">
+                                                <input type="hidden" name="projectId" value="<%= project.getId() %>">
+                                                <input type="hidden" name="userId" value="<%= m.getId() %>">
+                                                <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Remove Member">
+                                                    <i class="bi bi-x-circle fs-5"></i>
+                                                </button>
+                                            </form>
+                                        </li>
+                                    <%  }
+                                       } else { %>
+                                        <li class="list-group-item text-center py-4 text-muted">
+                                            No team members assigned yet.
+                                        </li>
+                                    <% } %>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right: Team Members -->
-            <div class="col-lg-4">
-                <div class="protrack-card">
-                    <div class="protrack-card-header">
-                        <h5 class="protrack-card-title">
-                            <i class="bi bi-people-fill"></i> Assigned Team (<%= members != null ? members.size() : 0 %>)
-                        </h5>
-                        <button type="button" class="btn btn-sm btn-outline-custom" data-bs-toggle="modal" data-bs-target="#assignMemberModal">
-                            <i class="bi bi-plus-lg"></i>
-                        </button>
-                    </div>
-                    <div class="protrack-card-body p-0">
-                        <ul class="list-group list-group-flush">
-                            <% if (members != null && !members.isEmpty()) {
-                                for (User m : members) { %>
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle bg-light text-primary border fw-bold d-flex align-items-center justify-content-center me-3"
-                                             style="width: 36px; height: 36px; font-size: 0.85rem;">
-                                            <%= m.getFullName() != null && !m.getFullName().isEmpty() ? ValidationUtil.escapeXml(m.getFullName().substring(0, 1).toUpperCase()) : "U" %>
-                                        </div>
-                                        <div>
-                                            <div class="fw-semibold text-dark"><%= ValidationUtil.escapeXml(m.getFullName()) %></div>
-                                            <div class="small text-muted"><%= ValidationUtil.escapeXml(m.getEmail()) %></div>
-                                        </div>
-                                    </div>
-                                    <form action="<%= request.getContextPath() %>/manager/projects" method="POST" onsubmit="return confirm('Remove <%= ValidationUtil.escapeXml(m.getFullName()) %> from this project?');">
-                                        <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
-                                        <input type="hidden" name="action" value="removeMember">
-                                        <input type="hidden" name="projectId" value="<%= project.getId() %>">
-                                        <input type="hidden" name="userId" value="<%= m.getId() %>">
-                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Remove Member">
-                                            <i class="bi bi-x-circle fs-5"></i>
-                                        </button>
-                                    </form>
-                                </li>
-                            <%  }
-                               } else { %>
-                                <li class="list-group-item text-center py-4 text-muted">
-                                    No team members assigned yet.
-                                </li>
-                            <% } %>
-                        </ul>
-                    </div>
-                </div>
+            <!-- 2. Interactive Gantt Timeline View Tab Pane -->
+            <div class="tab-pane fade" id="gantt-tab-pane" role="tabpanel" aria-labelledby="gantt-tab" tabindex="0">
+                <jsp:include page="../common/gantt-chart.jsp" />
             </div>
         </div>
+
+        <!-- Task File Attachments Modal -->
+        <jsp:include page="../common/attachments-modal.jsp" />
+
 
         <!-- Modal: Assign Member to Project -->
         <div class="modal fade" id="assignMemberModal" tabindex="-1" aria-hidden="true">
