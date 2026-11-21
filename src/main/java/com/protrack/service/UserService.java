@@ -134,6 +134,46 @@ public class UserService {
         activityDAO.log(actorUserId, "USER_UPDATE", "Updated user details for: " + existing.getFullName(), "USER", userId);
     }
 
+    /**
+     * Changes or assigns a user role.
+     * Enforces protection preventing self-demotion from ADMIN and protecting the last active administrator.
+     */
+    public void changeUserRole(int userId, Role newRole, Integer actorUserId) throws AppException {
+        if (newRole == null) {
+            throw new AppException("Please specify a valid user role.");
+        }
+        User existing = getUserById(userId);
+
+        // Prevent admin from changing their own role away from ADMIN
+        if (actorUserId != null && actorUserId == userId) {
+            if (existing.getRole() == Role.ADMIN && newRole != Role.ADMIN) {
+                throw new AppException("Admins cannot change their own role away from Administrator.");
+            }
+        }
+
+        // Protection for last remaining active administrator
+        if (existing.getRole() == Role.ADMIN && "ACTIVE".equalsIgnoreCase(existing.getStatus()) && newRole != Role.ADMIN) {
+            if (userDAO.countActiveByRole(Role.ADMIN) <= 1) {
+                throw new AppException("Cannot demote the last remaining active administrator.");
+            }
+        }
+
+        Role oldRole = existing.getRole();
+        if (oldRole == newRole) {
+            return;
+        }
+
+        existing.setRole(newRole);
+        boolean updated = userDAO.update(existing);
+        if (!updated) {
+            throw new AppException("Failed to update user role.");
+        }
+
+        activityDAO.log(actorUserId, "USER_ROLE_CHANGE",
+                "Changed role of " + existing.getFullName() + " (" + existing.getEmail() + ") from " + oldRole.name() + " to " + newRole.name(),
+                "USER", userId);
+    }
+
     public void updateProfile(int userId, String fullName, String email) throws AppException {
         User existing = getUserById(userId);
 

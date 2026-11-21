@@ -78,6 +78,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 5b. Change Role Modal Population
+    const changeRoleModal = document.getElementById('changeRoleModal');
+    if (changeRoleModal) {
+        changeRoleModal.addEventListener('show.bs.modal', (event) => {
+            const button = event.relatedTarget;
+            if (!button) return;
+
+            const id = button.getAttribute('data-id');
+            const name = button.getAttribute('data-name');
+            const email = button.getAttribute('data-email');
+            const role = button.getAttribute('data-role');
+
+            const idInput = document.getElementById('changeRoleUserId');
+            const nameElem = document.getElementById('changeRoleUserName');
+            const roleSelect = document.getElementById('changeRoleSelect');
+
+            if (idInput) idInput.value = id || '';
+            if (nameElem) nameElem.textContent = (name || 'User') + (email ? ' (' + email + ')' : '');
+            if (roleSelect) roleSelect.value = role || 'TEAM_MEMBER';
+        });
+    }
+
     // 6. Project Edit Modal Population
     const editProjectModal = document.getElementById('editProjectModal');
     if (editProjectModal) {

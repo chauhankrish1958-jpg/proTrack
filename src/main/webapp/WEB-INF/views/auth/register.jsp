@@ -66,10 +66,22 @@
                     </div>
                 </div>
 
+                <%
+                    String currentRole = (String) request.getAttribute("selectedRole");
+                    if (currentRole == null || currentRole.trim().isEmpty()) currentRole = "TEAM_MEMBER";
+                %>
                 <div class="col-12">
-                    <div class="p-3 bg-light rounded-3 border small text-muted d-flex align-items-center">
-                        <i class="bi bi-info-circle-fill text-primary me-2 fs-5"></i>
-                        <span>New accounts are registered as <strong>Team Member</strong>. Project Manager and Administrator privileges can be assigned by system administrators.</span>
+                    <label for="regRole" class="form-label">Account Role</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-muted"><i class="bi bi-person-badge"></i></span>
+                        <select class="form-select" id="regRole" name="role" required>
+                            <option value="TEAM_MEMBER" <%= "TEAM_MEMBER".equalsIgnoreCase(currentRole) ? "selected" : "" %>>Team Member (Collaborate on tasks &amp; log hours)</option>
+                            <option value="PROJECT_MANAGER" <%= "PROJECT_MANAGER".equalsIgnoreCase(currentRole) ? "selected" : "" %>>Project Manager (Manage projects, assign tasks &amp; view reports)</option>
+                            <option value="ADMIN" <%= "ADMIN".equalsIgnoreCase(currentRole) ? "selected" : "" %>>Administrator (Full system management &amp; governance)</option>
+                        </select>
+                    </div>
+                    <div class="form-text text-muted small mt-1">
+                        <i class="bi bi-info-circle me-1"></i>Select your role: Administrator, Project Manager, or Team Member.
                     </div>
                 </div>
 

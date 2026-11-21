@@ -129,4 +129,76 @@ public class UserServiceProtectionTest {
 
         verify(mockUserDAO).update(any(User.class));
     }
+
+    @Test
+    @DisplayName("Verify changeUserRole promotes team member to project manager and admin")
+    public void testChangeUserRolePromotesMember() throws AppException {
+        User member = UserFactory.createUser(4, "Alex Rivera", "alex@protrack.com", "hash", Role.TEAM_MEMBER, "ACTIVE");
+        when(mockUserDAO.findById(4)).thenReturn(Optional.of(member));
+        when(mockUserDAO.update(any(User.class))).thenReturn(true);
+
+        assertDoesNotThrow(() -> {
+            userService.changeUserRole(4, Role.PROJECT_MANAGER, 1);
+        });
+        assertEquals(Role.PROJECT_MANAGER, member.getRole());
+
+        assertDoesNotThrow(() -> {
+            userService.changeUserRole(4, Role.ADMIN, 1);
+        });
+        assertEquals(Role.ADMIN, member.getRole());
+        verify(mockUserDAO, times(2)).update(member);
+    }
+
+    @Test
+    @DisplayName("Verify changeUserRole rejects admin self-demotion")
+    public void testChangeUserRoleRejectsAdminSelfDemotion() {
+        User admin = UserFactory.createUser(1, "Super Admin", "admin@protrack.com", "hash", Role.ADMIN, "ACTIVE");
+        when(mockUserDAO.findById(1)).thenReturn(Optional.of(admin));
+
+        AppException ex = assertThrows(AppException.class, () -> {
+            userService.changeUserRole(1, Role.TEAM_MEMBER, 1);
+        });
+
+        assertTrue(ex.getMessage().contains("cannot change their own role away from Administrator"));
+        verify(mockUserDAO, never()).update(any());
+    }
+
+    @Test
+    @DisplayName("Verify changeUserRole rejects demoting the last active administrator")
+    public void testChangeUserRoleRejectsDemotingLastAdmin() {
+        User admin2 = UserFactory.createUser(2, "Second Admin", "admin2@protrack.com", "hash", Role.ADMIN, "ACTIVE");
+        when(mockUserDAO.findById(2)).thenReturn(Optional.of(admin2));
+        when(mockUserDAO.countActiveByRole(Role.ADMIN)).thenReturn(1);
+
+        AppException ex = assertThrows(AppException.class, () -> {
+            userService.changeUserRole(2, Role.PROJECT_MANAGER, 1);
+        });
+
+        assertTrue(ex.getMessage().contains("last remaining active administrator"));
+        verify(mockUserDAO, never()).update(any());
+    }
+
+    @Test
+    @DisplayName("Verify changeUserRole allows demoting admin when multiple active admins exist")
+    public void testChangeUserRoleAllowsDemotionWhenMultipleAdminsExist() throws AppException {
+        User admin2 = UserFactory.createUser(2, "Second Admin", "admin2@protrack.com", "hash", Role.ADMIN, "ACTIVE");
+        when(mockUserDAO.findById(2)).thenReturn(Optional.of(admin2));
+        when(mockUserDAO.countActiveByRole(Role.ADMIN)).thenReturn(2);
+        when(mockUserDAO.update(any(User.class))).thenReturn(true);
+
+        assertDoesNotThrow(() -> {
+            userService.changeUserRole(2, Role.PROJECT_MANAGER, 1);
+        });
+        assertEquals(Role.PROJECT_MANAGER, admin2.getRole());
+        verify(mockUserDAO).update(admin2);
+    }
+
+    @Test
+    @DisplayName("Verify changeUserRole rejects null role")
+    public void testChangeUserRoleRejectsNullRole() {
+        AppException ex = assertThrows(AppException.class, () -> {
+            userService.changeUserRole(4, null, 1);
+        });
+        assertTrue(ex.getMessage().contains("specify a valid user role"));
+    }
 }

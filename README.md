@@ -47,7 +47,7 @@
 | **Visual Analytics** | Chart.js | Chart.js 4.4.1 (Doughnut & Bar charts) |
 | **Password & Token Security** | BCrypt & SecureRandom | OpenBSD Blowfish password hashing & cryptographic CSRF tokens |
 | **Build & Packaging Tool** | Apache Maven | Maven 3.9+ (Produces standard `protrack.war`) |
-| **Automated Testing** | JUnit 5 & Mockito | 90 automated unit tests with mocked JDBC & services (JUnit Jupiter 5.10.2 + Mockito 5.11.0) |
+| **Automated Testing** | JUnit 5 & Mockito | 95 automated unit tests with mocked JDBC & services (JUnit Jupiter 5.10.2 + Mockito 5.11.0) |
 
 ---
 
@@ -468,7 +468,7 @@ Execute the entire test suite using:
 ./mvnw test
 ```
 
-### Automated Test Suite Overview (90 Tests — 100% Passing):
+### Automated Test Suite Overview (95 Tests — 100% Passing):
 
 | Test Suite Class | Tests | Category | Key Assertions & Scenarios Verified |
 | :--- | :---: | :--- | :--- |
@@ -480,17 +480,17 @@ Execute the entire test suite using:
 | **`ReportExportServiceTest`** | 3 | Service & Reporting | • RFC-4180 CSV generation with UTF-8 BOM (`\uFEFF`) for Microsoft Excel & Google Sheets compatibility<br>• Project Milestones CSV formatting with dynamic completion percentages<br>• Overdue tasks CSV formatting with real-time delinquency days calculation<br>• Escaping of double quotes, commas, and linebreaks |
 | **`LogoutServletTest`** | 4 | Servlet & CSRF | • GET /logout while logged in safely redirects to dashboard without invalidating session<br>• GET /logout while unauthenticated returns HTTP 405 Method Not Allowed<br>• POST /logout with valid CSRF token invalidates session and redirects to /login<br>• POST /logout with missing or invalid CSRF token returns HTTP 403 Forbidden |
 | **`LoginAttemptTrackerTest`** | 5 | Security & Rate Limiting | • Brand new email/IP combination is not locked<br>• 1 to 4 failed login attempts do not trigger lockout<br>• Exactly 5 failed attempts locks target key for 5 minutes<br>• Successful login immediately resets failed attempt counter<br>• Lock tracking is strictly isolated per email + IP combination |
-| **`UserServiceProtectionTest`** | 7 | Service & RBAC Defense | • Administrator cannot change their own role away from `ADMIN`<br>• Administrator cannot deactivate their own account status<br>• Cannot demote the last remaining active administrator<br>• Cannot deactivate the last remaining active administrator<br>• Cannot delete the last remaining active administrator<br>• User self-deletion strictly rejected with clear error message<br>• Demoting an administrator succeeds when multiple active administrators exist |
+| **`UserServiceProtectionTest`** | 12 | Service & RBAC Defense | • Administrator cannot change their own role away from `ADMIN`<br>• Administrator cannot deactivate their own account status<br>• Cannot demote the last remaining active administrator<br>• Cannot deactivate the last remaining active administrator<br>• Cannot delete the last remaining active administrator<br>• User self-deletion strictly rejected with clear error message<br>• Demoting an administrator succeeds when multiple active administrators exist<br>• `changeUserRole` promotes Team Member to Project Manager and Administrator<br>• `changeUserRole` rejects Administrator self-demotion<br>• `changeUserRole` rejects demoting last active Administrator<br>• `changeUserRole` allows demoting Administrator when multiple active Administrators exist<br>• `changeUserRole` rejects null role |
 | **`TaskAuthorizationTest`** | 9 | Service & Assignee Security | • Team members can update status on tasks assigned directly to their `userId`<br>• Team members denied with `UnauthorizedAccessException` when attempting to alter unassigned tasks<br>• Team members denied when attempting to alter other team members' tasks<br>• Administrators can update status of any task across all projects<br>• Assignee validation: non-existent user rejected<br>• Assignee validation: inactive user rejected<br>• Assignee validation: user without `Role.TEAM_MEMBER` rejected<br>• Assignee validation: user not assigned to the task's project rejected<br>• Assignee validation: valid active project member succeeds |
 | **`SecurityRBACAndAuthTest`** | 9 | Security & Filters | • Unauthenticated requests safely redirected to `/login`<br>• Semicolon matrix parameter auth bypass neutralized (`/manager/tasks;x=.css` denied)<br>• RBAC role mismatch returns HTTP 403 Forbidden<br>• Static asset whitelist (`/assets/*`) bypasses auth without risk<br>• Missing CSRF token on POST yields HTTP 403<br>• Invalid CSRF token on POST yields HTTP 403<br>• Valid session CSRF token on POST passes filter successfully<br>• Stale session: deactivated user in DB has session invalidated and redirected to `/login`<br>• Stale session: role update in DB dynamically refreshes session role and updates RBAC enforcement |
-| **`RegistrationSecurityTest`** | 5 | Service & Validation | • Passwords shorter than 8 characters strictly rejected<br>• Raw special characters (e.g. & in 'R&D') preserved cleanly in storage without premature entity encoding<br>• Role escalation prevented: public registrations forced strictly to `Role.TEAM_MEMBER`<br>• Duplicate email registrations rejected with `AppException`<br>• Registration policy check rejects signups when registration is disabled in settings |
+| **`RegistrationSecurityTest`** | 5 | Service & Validation | • Passwords shorter than 8 characters strictly rejected<br>• Raw special characters (e.g. & in 'R&D') preserved cleanly in storage without premature entity encoding<br>• Account role selection verified for `TEAM_MEMBER`, `PROJECT_MANAGER`, and `ADMIN`<br>• Duplicate email registrations rejected with `AppException`<br>• Registration policy check rejects signups when registration is disabled in settings |
 | **`XSSSanitizationTest`** | 4 | Security Utilities | • JSP output escaping (`escapeXml`) neutralizes dangerous `<script>` and `javascript:` payloads<br>• Neutralizes HTML attribute breakout attacks (`"><img src=x onerror=...`)<br>• Converts `&`, `<`, `>`, `"`, `'` to safe XML entities once without double-escaping real-world names (e.g. `R&D Team` renders cleanly)<br>• Gracefully handles `null` and empty string inputs |
 | **`ProTrackUnitTest`** | 6 | Core Unit Tests | • BCrypt salt generation and password verification<br>• Rejection of passwords with insufficient length (< 8 chars)<br>• Email format regex validation<br>• Date calculations and overdue detection<br>• TaskStatus and Priority enum display mappings<br>• Polymorphic role capability checks on concrete `User` subtypes |
 | **`ProjectDAORollbackTest`** | 2 | Unit Test with Mocked JDBC | • Atomic rollback on batch failure: verifies `conn.rollback()` is invoked, auto-commit is restored, and `DatabaseOperationException` is thrown using mocked JDBC connection<br>• Clean commit on valid project and member batch insertion |
 
 ```
 [INFO] Results:
-[INFO] Tests run: 90, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 95, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 

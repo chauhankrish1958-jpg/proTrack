@@ -70,9 +70,9 @@ public class RegistrationSecurityTest {
     }
 
     @Test
-    @DisplayName("Verify public registration assigns Role.TEAM_MEMBER")
-    public void testRegistrationAssignsTeamMemberRole() throws AppException {
-        when(mockUserDAO.emailExists("dev@protrack.com", null)).thenReturn(false);
+    @DisplayName("Verify registration allows choosing Role.TEAM_MEMBER, Role.PROJECT_MANAGER, and Role.ADMIN")
+    public void testRegistrationAllowsRoleSelection() throws AppException {
+        when(mockUserDAO.emailExists(anyString(), any())).thenReturn(false);
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         when(mockUserDAO.save(captor.capture())).thenAnswer(inv -> {
@@ -81,12 +81,25 @@ public class RegistrationSecurityTest {
             return u;
         });
 
-        User user = authService.register("New Developer", "dev@protrack.com", "Password123#", Role.TEAM_MEMBER);
+        // 1. Team Member
+        User member = authService.register("New Developer", "dev@protrack.com", "Password123#", Role.TEAM_MEMBER);
+        assertNotNull(member);
+        assertEquals(Role.TEAM_MEMBER, captor.getValue().getRole());
 
-        assertNotNull(user);
-        User capturedUser = captor.getValue();
-        assertEquals(Role.TEAM_MEMBER, capturedUser.getRole());
-        assertEquals("New Developer", capturedUser.getFullName());
+        // 2. Project Manager
+        User pm = authService.register("Project Lead", "lead@protrack.com", "Password123#", Role.PROJECT_MANAGER);
+        assertNotNull(pm);
+        assertEquals(Role.PROJECT_MANAGER, captor.getValue().getRole());
+
+        // 3. Administrator
+        User admin = authService.register("System Admin", "sysadmin@protrack.com", "Password123#", Role.ADMIN);
+        assertNotNull(admin);
+        assertEquals(Role.ADMIN, captor.getValue().getRole());
+
+        // 4. Null role defaults to TEAM_MEMBER
+        User defaultRoleUser = authService.register("Default User", "default@protrack.com", "Password123#", null);
+        assertNotNull(defaultRoleUser);
+        assertEquals(Role.TEAM_MEMBER, captor.getValue().getRole());
     }
 
     @Test

@@ -80,6 +80,13 @@ public class UserServlet extends HttpServlet {
                     userService.updateUser(userId, fullName, email, role, status, actorUserId);
                     session.setAttribute("flash_success", "User details updated successfully.");
                 }
+                case "changeRole", "assignRole" -> {
+                    int userId = ValidationUtil.parsePositiveInt(request.getParameter("userId"), 0);
+                    String roleStr = request.getParameter("role");
+                    Role newRole = Role.fromString(roleStr);
+                    userService.changeUserRole(userId, newRole, actorUserId);
+                    session.setAttribute("flash_success", "User role successfully updated to " + newRole.getDisplayName() + ".");
+                }
                 case "delete" -> {
                     int userId = ValidationUtil.parsePositiveInt(request.getParameter("userId"), 0);
                     userService.deleteUser(userId, actorUserId);

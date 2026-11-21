@@ -35,10 +35,17 @@ public class RegisterServlet extends HttpServlet {
         String password = request.getParameter("password");
         String confirmPassword = request.getParameter("confirmPassword");
 
+        String roleParam = request.getParameter("role");
+        Role role = Role.fromString(roleParam);
+        if (role == null) {
+            role = Role.TEAM_MEMBER;
+        }
+
         if (password == null || !password.equals(confirmPassword)) {
             request.setAttribute("errorMessage", "Passwords do not match.");
             request.setAttribute("fullName", fullName);
             request.setAttribute("email", email);
+            request.setAttribute("selectedRole", role.name());
             request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
             return;
         }
@@ -47,13 +54,10 @@ public class RegisterServlet extends HttpServlet {
             request.setAttribute("errorMessage", "Password must be at least 8 characters long.");
             request.setAttribute("fullName", fullName);
             request.setAttribute("email", email);
+            request.setAttribute("selectedRole", role.name());
             request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
             return;
         }
-
-        // Security: Public self-registration ALWAYS defaults to TEAM_MEMBER.
-        // Project Manager and Administrator roles can only be granted by Administrators.
-        Role role = Role.TEAM_MEMBER;
 
         try {
             User registered = authService.register(fullName, email, password, role);
@@ -65,12 +69,14 @@ public class RegisterServlet extends HttpServlet {
             request.setAttribute("errorMessage", e.getMessage());
             request.setAttribute("fullName", fullName);
             request.setAttribute("email", email);
+            request.setAttribute("selectedRole", role.name());
             request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
         } catch (Exception e) {
             getServletContext().log("Unexpected error during registration", e);
             request.setAttribute("errorMessage", "Registration failed due to a system error. Please try again.");
             request.setAttribute("fullName", fullName);
             request.setAttribute("email", email);
+            request.setAttribute("selectedRole", role.name());
             request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
         }
     }

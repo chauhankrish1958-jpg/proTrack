@@ -118,6 +118,14 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-custom" title="Assign / Change Role"
+                                                data-bs-toggle="modal" data-bs-target="#changeRoleModal"
+                                                data-id="<%= u.getId() %>"
+                                                data-name="<%= ValidationUtil.escapeXml(u.getFullName()) %>"
+                                                data-email="<%= ValidationUtil.escapeXml(u.getEmail()) %>"
+                                                data-role="<%= u.getRole().name() %>">
+                                            <i class="bi bi-shield-lock text-warning"></i>
+                                        </button>
                                         <button type="button" class="btn btn-outline-custom" title="Edit User"
                                                 data-bs-toggle="modal" data-bs-target="#editUserModal"
                                                 data-id="<%= u.getId() %>"
@@ -250,6 +258,48 @@
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     MODAL: Assign / Change User Role
+     ========================================================================= -->
+<div class="modal fade" id="changeRoleModal" tabindex="-1" aria-labelledby="changeRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form action="<%= request.getContextPath() %>/admin/users" method="POST">
+                <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                <input type="hidden" name="action" value="changeRole">
+                <input type="hidden" id="changeRoleUserId" name="userId" value="">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold" id="changeRoleModalLabel"><i class="bi bi-shield-lock-fill text-warning me-2"></i>Assign / Change User Role</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-semibold">Target User</label>
+                        <div class="p-2 bg-light rounded border text-dark fw-medium" id="changeRoleUserName">
+                            Loading...
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="changeRoleSelect" class="form-label fw-semibold">Select New Role</label>
+                        <select class="form-select form-select-lg" id="changeRoleSelect" name="role" required>
+                            <option value="TEAM_MEMBER">Team Member (Task collaborator)</option>
+                            <option value="PROJECT_MANAGER">Project Manager (Project &amp; task management)</option>
+                            <option value="ADMIN">Administrator (Full system control)</option>
+                        </select>
+                        <div class="form-text text-muted small mt-2">
+                            <i class="bi bi-info-circle me-1"></i>Changing a role grants or revokes administrative, project management, and member dashboard permissions immediately.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning fw-semibold"><i class="bi bi-check2-circle me-1"></i>Save Role</button>
                 </div>
             </form>
         </div>
